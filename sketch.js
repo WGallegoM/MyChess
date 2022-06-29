@@ -2,6 +2,7 @@ let pieces = [[], []];
 let occupiedCells = new Array(8);
 let piecesIMG = [[], []];
 let fieldPositions = new Array(8);
+let promoteSelec;
 const assets = 'default'
 let turn = 0; //It can be changed depending on the mode to an even or odd value
 let mouseInField;
@@ -14,10 +15,12 @@ const unit = resolution / 8;
 class Piece {
   constructor(position, team = '0') {
     this.team = team;
+    this.piece = undefined;
     this.position = position;
     this.lastPosition = undefined;
     this.pieceImage = null;
     this.countMoves = 0;
+    this.movementTurn = turn;
   }
 
   move(to, to2 = null) {
@@ -49,7 +52,14 @@ class Piece {
       }
     }
     this.countMoves += 1;
-    //console.log(pieces[0][0].countMoves);
+    console.log('Ficha a coronar: ' + promoteSelec)
+    for (let i = 0; i < 8; i++) {
+      if (pieces[turn%2][i].position !== undefined){
+        if (pieces[turn%2][i].position.y === this.position.y && this.piece === 'Pawn') {
+          this.isPromoted();
+        }
+      }
+    }
     turn += 1;
     pickedPiece = undefined;
     for (let i = 0; i < 8; i++){ //This is for cleaning the register of movements of the last turn
@@ -64,20 +74,6 @@ class Piece {
       if (pieces[1][i].position !== undefined){
         occupiedCells[pieces[1][i].position.y][pieces[1][i].position.x] = 1;
       } //Black Pieces
-    }
-    //Castling
-    if((occupiedCells[7][1] === '' && occupiedCells[7][2] === '' && occupiedCells[7][3] === '' 
-     && pieces[0][8].lastPosition === undefined && pieces[0][14].lastPosition === undefined) || 
-     (occupiedCells[7][5] === '' && occupiedCells[7][6] === '' && pieces[0][9].lastPosition === undefined 
-     && pieces[0][14].lastPosition === undefined)){
-      console.log('Free White')
-      //Free cells for castiling (white)
-    } else if ((occupiedCells[0][1] === '' && occupiedCells[0][2] === '' && occupiedCells[0][3] === '' 
-    && pieces[1][8].lastPosition === undefined && pieces[1][14].lastPosition === undefined) || 
-    (occupiedCells[0][5] === '' && occupiedCells[0][6] === '' && pieces[1][9].lastPosition === undefined 
-    && pieces[1][14].lastPosition === undefined)){
-      console.log('Free Black')
-      //Free cells for castiling (white)
     }
     //pieces[team%2][14]
   }
@@ -154,9 +150,52 @@ class Pawn extends Piece {
     } else {
       this.pieceImage = piecesIMG[1][0]
     }
+    this.piece = 'Pawn';
+  }
+  isPromoted() {
+    //Tells if a Pawn can be promoted
+    if (this.team === 0 && this.position.y === 0 && (turn % 2) === 0) {
+      //Deploy menu for selecting a piece to be changed to of the same team, or to keep the Pawn and prevent it of being selected
+      let sel;
+      for (let i = 0; i < 8; i++) {
+        if (pieces[turn%2][i].position !== undefined){
+          if (pieces[turn%2][i].position.y === this.position.y && this.piece === 'Pawn') {
+            sel = i;
+          }
+        }
+      }
+      if (promoteSelec === 'Bishop') {
+        pieces[turn%2][sel] = new Bishop(this.position,turn%2)
+      }else if (promoteSelec === 'Queen') {
+        pieces[turn%2][sel] = new Queen(this.position,turn%2)
+      }else if (promoteSelec === 'Knight') {
+        pieces[turn%2][sel] = new Knight(this.position,turn%2)
+      }else if (promoteSelec === 'Rook') {
+        pieces[turn%2][sel] = new Rook(this.position,turn%2)
+      }
+    } else if (this.team === 1 && this.position.y === 7 && (turn % 2) === 1) {
+      let sel;
+      for (let i = 0; i < 8; i++) {
+        if (pieces[turn%2][i].position !== undefined){
+          if (pieces[turn%2][i].position.y === this.position.y && this.piece === 'Pawn') {
+            sel = i;
+          }
+        }
+      }
+      if (promoteSelec === 'Bishop') {
+        pieces[turn%2][sel] = new Bishop(this.position,turn%2)
+      }else if (promoteSelec === 'Queen') {
+        pieces[turn%2][sel] = new Queen(this.position,turn%2)
+      }else if (promoteSelec === 'Knight') {
+        pieces[turn%2][sel] = new Knight(this.position,turn%2)
+      }else if (promoteSelec === 'Rook') {
+        pieces[turn%2][sel] = new Rook(this.position,turn%2)
+      }
+    }
   }
   isAllowed(to) {
     this.lastPosition = this.position;
+    this.movementTurn = turn;
     let m;
     let t; //Oposite team
     if (this.team === 1){
@@ -171,16 +210,18 @@ class Pawn extends Piece {
         if (to.x === this.position.x && Vr.x <= 2 && ((to.y - this.position.y )  === m * 1 || (to.y - this.position.y )  === m * 2) 
         && (occupiedCells[this.position.y + m][this.position.x] === '' || turn === 0)) {
           return true
-        } else if (occupiedCells[to.y][to.x] !== this.team && occupiedCells[to.y][to.x] !== '' 
-        && (to.x === this.position.x + 1 || to.x === this.position.x - 1) && this.position.y !== to.y && turn !== 0){
+        } else if (this.position.y + m === to.y && occupiedCells[to.y][to.x] !== this.team && occupiedCells[to.y][to.x] !== '' 
+        && (to.x === this.position.x + 1 || to.x === this.position.x - 1) && turn !== 0){
           return true
         }else { return false }
       } else {
         console.error("You must input a P5.vector object")
       }
+      //En passant move
       } else if (((this.team === 0 && this.position.y === 3)||(this.team === 1 && this.position.y === 4)) 
       && occupiedCells[to.y][to.x] === '' && (to.x === this.position.x + 1 || to.x === this.position.x - 1) 
-      && (occupiedCells[to.y - m][to.x] !== this.team && occupiedCells[to.y - m][to.x] !== '') && pieces[t][to.x].countMoves === 1){
+      && (occupiedCells[to.y - m][to.x] !== this.team && occupiedCells[to.y - m][to.x] !== '') 
+      && pieces[t][to.x].countMoves === 1 && pieces[t][to.x].movementTurn === turn - 1){
           pieces[t][to.x].position = undefined;
           return true;
       } else {
@@ -189,8 +230,8 @@ class Pawn extends Piece {
          if (to.x === this.position.x && Vr.x <= 1 && (to.y - this.position.y )  === m * 1 
         && (occupiedCells[this.position.y + m][this.position.x] === '' || turn === 0)) {
            return true
-         } else if (occupiedCells[to.y][to.x] !== this.team && occupiedCells[to.y][to.x] !== '' 
-         && (to.x === this.position.x + 1 || to.x === this.position.x - 1) && this.position.y !== to.y){
+         } else if (this.position.y + m === to.y && occupiedCells[to.y][to.x] !== this.team && occupiedCells[to.y][to.x] !== '' 
+         && (to.x === this.position.x + 1 || to.x === this.position.x - 1)){
            return true
          }else { return false }
        } else {
@@ -209,7 +250,7 @@ class Rook extends Piece {
     } else {
       this.pieceImage = piecesIMG[1][1]
     }
-
+    this.piece = 'Rook';
   }
 
   isAllowed(to) {
@@ -288,6 +329,7 @@ class Knight extends Piece {
     } else {
       this.pieceImage = piecesIMG[1][2]
     }
+    this.piece = 'Knight';
   }
 
   isAllowed(to) {
@@ -317,14 +359,13 @@ class Bishop extends Piece {
     } else {
       this.pieceImage = piecesIMG[1][3]
     }
+    this.piece = 'Bishop';
   }
 
   isAllowed(to) {
     /*Tells if a movement is allowed acording to 
     the rules of the piece*/
     this.lastPosition = this.position;
-    let b = this.position.x;
-    let c = this.position.y;
     if (to instanceof p5.Vector) {
       let Vr = absDiff(this.position, to);
       if (Vr.x === Vr.y && this.position.x !== to.x) {
@@ -421,7 +462,7 @@ class Queen extends Piece {
     } else {
       this.pieceImage = piecesIMG[1][4]
     }
-
+    this.piece = 'Queen';
   }
 
   isAllowed(to) {
@@ -489,77 +530,61 @@ class Queen extends Piece {
         let b = this.position.x;
         let c = this.position.y;
         if (this.position.x < to.x && this.position.y > to.y){
-          //console.log('diagonal q1')
           while (b < to.x){
             b += 1
             c -= 1
             if (occupiedCells[c][b] !== this.team && occupiedCells[c][b] !== '' && b === to.x){
-              //console.log('ER2')
               return true
             }
             if (b === to.x){
-              //console.log('ER3')
               return true
             }
             if (occupiedCells[c][b] !== '' || occupiedCells[c][b] === this.team){
-              //console.log('ER1')
               return false
             } 
           }
         } 
         if (this.position.x < to.x && this.position.y < to.y){
-          //console.log('diagonal q4')
           while (b < to.x){
             b += 1
             c += 1
             if (occupiedCells[c][b] !== this.team && occupiedCells[c][b] !== '' && b === to.x){
-              //console.log('ER2')
               return true
             } 
             if (b === to.x){
-              //console.log('ER3')
               return true
             }
             if (occupiedCells[c][b] !== '' || occupiedCells[c][b] === this.team){
-              //console.log('ER1')
               return false
             } 
           }
         } 
         if (this.position.x > to.x && this.position.y < to.y){
-          //console.log('diagonal q3')
           while (b > to.x){
             b -= 1
             c += 1
             if (occupiedCells[c][b] !== this.team && occupiedCells[c][b] !== '' && b === to.x){
-              //console.log('ER2')
               return true
             }
             if (b === to.x){
-              //console.log('ER3')
               return true
             }
             if (occupiedCells[c][b] !== '' || occupiedCells[c][b] === this.team){
-              //console.log('ER1')
               return false
             }
           }
         } 
         if (this.position.x > to.x && this.position.y > to.y){
-          //console.log('diagonal q2')
           while (b > to.x){
             b -= 1
             c -= 1
             if (occupiedCells[c][b] !== this.team && occupiedCells[c][b] !== '' && b === to.x){
-              //console.log('ER2')
               return true
             }
             if (b === to.x){
-              //console.log('ER3')
               return true
             }
             if (occupiedCells[c][b] !== '' || occupiedCells[c][b] === this.team){
-              //console.log('ER1')
               return false
             }
         }
@@ -581,11 +606,22 @@ class King extends Piece {
     } else {
       this.pieceImage = piecesIMG[1][5]
     }
-
+    this.piece = 'King';
   }
    isAllowed(to) {
      /*Tells if a movement is allowed acording to 
      the rules of the piece*/
+     //Castling
+     if(to.x === (pieces[turn%2][8].position.x + 1) && occupiedCells[((turn+1)%2)*7][1] === '' && occupiedCells[((turn+1)%2)*7][2] === '' && occupiedCells[((turn+1)%2)*7][3] === '' 
+     && pieces[turn%2][8].lastPosition === undefined && pieces[turn%2][14].lastPosition === undefined){
+      pieces[turn%2][8].position.x += 2;
+      return true;
+      //Free cells for castling (white)
+    } else if(to.x === (pieces[turn%2][9].position.x - 1) && occupiedCells[((turn+1)%2)*7][5] === '' && occupiedCells[((turn+1)%2)*7][6] === '' && pieces[turn%2][9].lastPosition === undefined 
+      && pieces[turn%2][14].lastPosition === undefined){
+        pieces[turn%2][9].position.x -= 2;
+        return true;
+    }
      if (to instanceof p5.Vector) {
        let Vr = absDiff(this.position, to)
        if ((Vr.x === 1 && Vr.y === 1) || (this.position.x === to.x && this.position.y !== to.y && Vr.y === 1) ||
@@ -687,6 +723,15 @@ function draw() {
     let msxy = whereMouse();
     rect(fieldPositions[msxy.x][msxy.y].x, fieldPositions[msxy.x][msxy.y].y, unit)
     pop();
+  }
+  if (keyCode === UP_ARROW) {
+    promoteSelec = 'Queen';
+  } else if (keyCode === DOWN_ARROW) {
+    promoteSelec = 'Rook';
+  } else if (keyCode === LEFT_ARROW) {
+    promoteSelec = 'Knight';
+  } else if (keyCode === RIGHT_ARROW) {
+    promoteSelec = 'Bishop';
   }
 }
 
